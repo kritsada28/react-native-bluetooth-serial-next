@@ -1,9 +1,9 @@
-const ReactNative = require("react-native");
-const React = require("react");
-const { Buffer } = require("buffer");
+const ReactNative = require("react-native")
+const React = require("react")
+const { Buffer } = require("buffer")
 
-const { NativeModules, DeviceEventEmitter } = ReactNative;
-const { BluetoothSerial } = NativeModules;
+const { NativeModules, DeviceEventEmitter } = ReactNative
+const { BluetoothSerial } = NativeModules
 
 /**
  * High order component that will
@@ -28,26 +28,26 @@ export const withSubscription = (
     typeof options.subscriptionName === "string" &&
     options.subscriptionName !== ""
       ? options.subscriptionName
-      : "subscription";
+      : "subscription"
   const destroyOnWilUnmount =
     typeof options.destroyOnWilUnmount === "boolean"
       ? options.destroyOnWilUnmount
-      : true;
+      : true
 
-  const subscription = DeviceEventEmitter;
-  subscription.on = DeviceEventEmitter.addListener;
-  subscription.off = DeviceEventEmitter.removeListener;
-  subscription.remove = DeviceEventEmitter.removeAllListeners;
+  const subscription = DeviceEventEmitter
+  subscription.on = DeviceEventEmitter.addListener
+  subscription.off = DeviceEventEmitter.removeListener
+  subscription.remove = DeviceEventEmitter.removeAllListeners
 
   return class RTCBluetoothSerialComponent extends React.Component {
     componentWillUnmount() {
       if (destroyOnWilUnmount && subscription) {
         if (typeof subscription.remove === "function") {
-          subscription.remove();
+          subscription.remove()
         }
 
         if (typeof subscription.removeAllListeners === "function") {
-          subscription.removeAllListeners();
+          subscription.removeAllListeners()
         }
       }
     }
@@ -60,10 +60,10 @@ export const withSubscription = (
         >
           {this.props.children}
         </WrappedComponent>
-      );
+      )
     }
-  };
-};
+  }
+}
 
 // Overloading
 const {
@@ -77,23 +77,24 @@ const {
   withDelimiter,
   listUnpaired,
   cancelDiscovery,
-  setServices
-} = BluetoothSerial;
+  setServices,
+  listenDevice
+} = BluetoothSerial
 
-BluetoothSerial.disconnect = (id = null) => disconnect(id);
-BluetoothSerial.isConnected = (id = null) => isConnected(id);
-BluetoothSerial.readFromDevice = (id = null) => readFromDevice(id);
+BluetoothSerial.disconnect = (id = null) => disconnect(id)
+BluetoothSerial.isConnected = (id = null) => isConnected(id)
+BluetoothSerial.readFromDevice = (id = null) => readFromDevice(id)
 BluetoothSerial.readUntilDelimiter = (delimiter, id = null) =>
-  readUntilDelimiter(delimiter, id);
-BluetoothSerial.writeToDevice = (data, id = null) => writeToDevice(data, id);
-BluetoothSerial.clear = (id = null) => clear(id);
-BluetoothSerial.available = (id = null) => available(id);
+  readUntilDelimiter(delimiter, id)
+BluetoothSerial.writeToDevice = (data, id = null) => writeToDevice(data, id)
+BluetoothSerial.clear = (id = null) => clear(id)
+BluetoothSerial.available = (id = null) => available(id)
 BluetoothSerial.withDelimiter = (delimiter, id = null) =>
-  withDelimiter(delimiter, id);
+  withDelimiter(delimiter, id)
 BluetoothSerial.setServices = (services, includeDefaultServices = true) =>
-  setServices(services, includeDefaultServices);
-BluetoothSerial.discoverUnpairedDevices = listUnpaired;
-BluetoothSerial.stopScanning = cancelDiscovery;
+  setServices(services, includeDefaultServices)
+BluetoothSerial.discoverUnpairedDevices = listUnpaired
+BluetoothSerial.stopScanning = cancelDiscovery
 
 /**
  * Select a specific bluetooth device and
@@ -113,6 +114,8 @@ BluetoothSerial.device = (id = null) => ({
    *         is missing.
    */
   connect: () => BluetoothSerial.connect(id),
+
+  listenDevice: () => BluetoothSerial.listenDevice(id),
 
   /**
    * Disconnect from the selected bluetooth device / peripheral.
@@ -162,18 +165,18 @@ BluetoothSerial.device = (id = null) => ({
    */
   read: (callback = () => {}, delimiter = "") => {
     if (typeof callback !== "function") {
-      return;
+      return
     }
 
     BluetoothSerial.withDelimiter(delimiter, id).then(deviceId => {
       const subscription = BluetoothSerial.addListener("read", result => {
-        const { id: readDeviceId, data } = result;
+        const { id: readDeviceId, data } = result
 
         if (readDeviceId === deviceId) {
-          callback(data, subscription);
+          callback(data, subscription)
         }
-      });
-    });
+      })
+    })
   },
 
   /**
@@ -196,17 +199,17 @@ BluetoothSerial.device = (id = null) => ({
    */
   readEvery: (callback = () => {}, ms = 1000, delimiter = "") => {
     if (typeof callback !== "function") {
-      return;
+      return
     }
 
     const intervalId = setInterval(async () => {
       const data =
         typeof delimiter === "string"
           ? await BluetoothSerial.readUntilDelimiter(delimiter, id)
-          : await BluetoothSerial.readFromDevice(id);
+          : await BluetoothSerial.readFromDevice(id)
 
-      callback(data, intervalId);
-    }, ms);
+      callback(data, intervalId)
+    }, ms)
   },
 
   /**
@@ -235,9 +238,9 @@ BluetoothSerial.device = (id = null) => ({
    */
   write: data => {
     if (typeof data === "string") {
-      data = new Buffer(data);
+      data = new Buffer(data)
     }
-    return BluetoothSerial.writeToDevice(data.toString("base64"), id);
+    return BluetoothSerial.writeToDevice(data.toString("base64"), id)
   },
 
   /**
@@ -247,7 +250,7 @@ BluetoothSerial.device = (id = null) => ({
    * @return {Promise<Boolean>}
    */
   writeToDevice: data => BluetoothSerial.writeToDevice(data, id)
-});
+})
 
 /**
  * Similar to addListener, except that the listener is removed after it is
@@ -260,7 +263,7 @@ BluetoothSerial.device = (id = null) => ({
  *   listener
  */
 BluetoothSerial.once = (eventName, handler, context) =>
-  DeviceEventEmitter.once(eventName, handler, context);
+  DeviceEventEmitter.once(eventName, handler, context)
 
 /**
  * Attach listener to a certain event name.
@@ -272,7 +275,7 @@ BluetoothSerial.once = (eventName, handler, context) =>
  *   listener
  */
 BluetoothSerial.addListener = (eventName, handler, context) =>
-  DeviceEventEmitter.addListener(eventName, handler, context);
+  DeviceEventEmitter.addListener(eventName, handler, context)
 
 /**
  * Attach listener to a certain event name.
@@ -284,7 +287,7 @@ BluetoothSerial.addListener = (eventName, handler, context) =>
  *   listener
  */
 BluetoothSerial.on = (eventName, handler, context) =>
-  DeviceEventEmitter.addListener(eventName, handler, context);
+  DeviceEventEmitter.addListener(eventName, handler, context)
 
 /**
  * Removes the given listener for event of specific type.
@@ -300,7 +303,7 @@ BluetoothSerial.on = (eventName, handler, context) =>
  *
  */
 BluetoothSerial.removeListener = (eventName, handler) =>
-  DeviceEventEmitter.removeListener(eventName, handler);
+  DeviceEventEmitter.removeListener(eventName, handler)
 
 /**
  * Removes the given listener for event of specific type.
@@ -316,7 +319,7 @@ BluetoothSerial.removeListener = (eventName, handler) =>
  *
  */
 BluetoothSerial.off = (eventName, handler) =>
-  DeviceEventEmitter.removeListener(eventName, handler);
+  DeviceEventEmitter.removeListener(eventName, handler)
 
 /**
  * Removes all of the registered listeners, including those registered as
@@ -326,14 +329,14 @@ BluetoothSerial.off = (eventName, handler) =>
  *   listeners to remove
  */
 BluetoothSerial.removeAllListeners = eventName =>
-  DeviceEventEmitter.removeAllListeners(eventName);
+  DeviceEventEmitter.removeAllListeners(eventName)
 
 /**
  * Removes a specific subscription. Called by the `remove()` method of the
  * subscription itself to ensure any necessary cleanup is performed.
  */
 BluetoothSerial.removeSubscription = subscription =>
-  DeviceEventEmitter.removeSubscription(subscription);
+  DeviceEventEmitter.removeSubscription(subscription)
 
 /**
  * Listen and read data from device.
@@ -344,19 +347,19 @@ BluetoothSerial.removeSubscription = subscription =>
  */
 BluetoothSerial.read = (callback, delimiter = "", id = null) => {
   if (typeof callback !== "function") {
-    return;
+    return
   }
 
   BluetoothSerial.withDelimiter(delimiter, id).then(deviceId => {
     const subscription = BluetoothSerial.addListener("read", result => {
-      const { id: readDeviceId, data } = result;
+      const { id: readDeviceId, data } = result
 
       if (readDeviceId === deviceId) {
-        callback(data, subscription);
+        callback(data, subscription)
       }
-    });
-  });
-};
+    })
+  })
+}
 
 /**
  * Read data from device once.
@@ -368,7 +371,7 @@ BluetoothSerial.read = (callback, delimiter = "", id = null) => {
 BluetoothSerial.readOnce = (delimiter = "", id = null) =>
   typeof delimiter === "string"
     ? BluetoothSerial.readUntilDelimiter(delimiter, id)
-    : BluetoothSerial.readFromDevice(id);
+    : BluetoothSerial.readFromDevice(id)
 
 /**
  * Read data from device every n ms.
@@ -385,18 +388,18 @@ BluetoothSerial.readEvery = (
   id = null
 ) => {
   if (typeof callback !== "function") {
-    return;
+    return
   }
 
   const intervalId = setInterval(async () => {
     const data =
       typeof delimiter === "string"
         ? await BluetoothSerial.readUntilDelimiter(delimiter, id)
-        : await BluetoothSerial.readFromDevice(id);
+        : await BluetoothSerial.readFromDevice(id)
 
-    callback(data, intervalId);
-  }, ms);
-};
+    callback(data, intervalId)
+  }, ms)
+}
 
 /**
  * Write data to device, you can pass string or buffer,
@@ -408,9 +411,9 @@ BluetoothSerial.readEvery = (
  */
 BluetoothSerial.write = (data, id = null) => {
   if (typeof data === "string") {
-    data = new Buffer(data);
+    data = new Buffer(data)
   }
-  return BluetoothSerial.writeToDevice(data.toString("base64"), id);
-};
+  return BluetoothSerial.writeToDevice(data.toString("base64"), id)
+}
 
-export default BluetoothSerial;
+export default BluetoothSerial

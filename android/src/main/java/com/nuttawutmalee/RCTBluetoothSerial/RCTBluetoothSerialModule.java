@@ -414,6 +414,18 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
+    public void listenDevice(String id, Promise promise) {
+        if (D)
+            Log.d(TAG, "connect");
+
+        if (mBluetoothAdapter != null) {
+            BluetoothDevice rawDevice = mBluetoothAdapter.getRemoteDevice(id);
+            mBluetoothService.listenRfcomm(rawDevice);
+            promise.resolve(true);
+        }
+    }
+
+    @ReactMethod
     public void disconnect(@Nullable String id, Promise promise) {
         if (id == null) {
             id = mBluetoothService.getFirstDeviceAddress();

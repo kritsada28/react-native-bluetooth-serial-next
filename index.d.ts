@@ -93,6 +93,10 @@ declare namespace BluetoothSerial {
     id: string
   ): Promise<AndroidBluetoothDevice | iOSBluetoothDevice>;
 
+  export function listenDevice(
+    id: string
+  ): Promise<AndroidBluetoothDevice | iOSBluetoothDevice>;
+
   /**
    * Disconnect from connected bluetooth device / peripheral.
    *

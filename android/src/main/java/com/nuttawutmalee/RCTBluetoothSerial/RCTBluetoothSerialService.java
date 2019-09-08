@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.os.Build;
 import android.util.Log;
@@ -39,12 +40,15 @@ class RCTBluetoothSerialService {
     private String mFirstDeviceAddress = null;
     private HashMap<String, ConnectThread> mConnectThreads;
     private HashMap<String, ConnectedThread> mConnectedThreads;
+    private HashMap<String, AcceptThread> mAcceptThreads;
     private HashMap<String, String> mStates;
 
     // Constants that indicate the current connection state
     private static final String STATE_NONE = "none"; // we're doing nothing
     private static final String STATE_CONNECTING = "connecting"; // now initiating an outgoing connection
     private static final String STATE_CONNECTED = "connected"; // now connected to a remote device
+
+    private static final String APP_NAME = "BT";
 
     /**
      * Constructor. Prepares a new RCTBluetoothSerialModule session.
@@ -61,6 +65,10 @@ class RCTBluetoothSerialService {
 
         if (mConnectedThreads == null) {
             mConnectedThreads = new HashMap<>();
+        }
+
+        if (mAcceptThreads == null) {
+            mAcceptThreads = new HashMap<>();
         }
 
         if (mStates == null) {
@@ -96,6 +104,31 @@ class RCTBluetoothSerialService {
 
         mConnectThreads.put(id, thread);
         mStates.put(id, STATE_CONNECTING);
+    }
+
+
+    /**
+     * Start the AcceptThread for list to accpept incoming a remote device.
+     *
+     * @param device The BluetoothDevice to connect
+     */
+    synchronized void listenRfcomm(BluetoothDevice device) {
+        if (D)
+            Log.d(TAG, "connect to: " + device);
+
+        String id = device.getAddress();
+
+
+        // Start the thread to connect with the given device
+        AcceptThread thread = new AcceptThread();
+        thread.start();
+
+        if (mAcceptThreads.isEmpty()) {
+            mFirstDeviceAddress = id;
+        }
+
+        mAcceptThreads.put(id, thread);
+        //mStates.put(id, STATE_CONNECTING);
     }
 
     /**
@@ -150,6 +183,7 @@ class RCTBluetoothSerialService {
 
         cancelConnectThread(id);
         cancelConnectedThread(id);
+        cancelAcceptThread(id);
 
         mStates.put(id, STATE_NONE);
 
@@ -185,6 +219,16 @@ class RCTBluetoothSerialService {
 
         mConnectedThreads.clear();
 
+        for (Map.Entry<String, AcceptThread> item : mAcceptThreads.entrySet()) {
+            AcceptThread thread = mAcceptThreads.get(item.getKey());
+
+            if (thread != null) {
+                thread.cancel();
+            }
+        }
+        mAcceptThreads.clear();
+
+
         for (Map.Entry<String, String> item : mStates.entrySet()) {
             mStates.put(item.getKey(), STATE_NONE);
         }
@@ -215,6 +259,7 @@ class RCTBluetoothSerialService {
 
         cancelConnectThread(id); // Cancel any thread attempting to make a connection
         cancelConnectedThread(id); // Cancel any thread currently running a connection
+        cancelAcceptThread(id);
 
         // Start the thread to manage the connection and perform transmissions
         ConnectedThread thread = new ConnectedThread(socket, device);
@@ -279,6 +324,86 @@ class RCTBluetoothSerialService {
             if (thread != null) {
                 thread.cancel();
                 mConnectedThreads.remove(id);
+            }
+        }
+    }
+
+    private void cancelAcceptThread(String id) {
+        if (mAcceptThreads.containsKey(id)) {
+            AcceptThread thread = mAcceptThreads.get(id);
+
+            if (thread != null) {
+                thread.cancel();
+                mAcceptThreads.remove(id);
+            }
+        }
+    }
+
+
+    private class AcceptThread extends Thread {
+        private final BluetoothServerSocket serverSocket;
+
+        public AcceptThread() {
+            BluetoothServerSocket tmp = null;
+            try {
+                tmp = mAdapter.listenUsingInsecureRfcommWithServiceRecord(APP_NAME, UUID_SPP);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            serverSocket = tmp;
+        }
+
+        public void run() {
+            setName("AcceptThread");
+            BluetoothSocket socket;
+            String state = mStates.get(mFirstDeviceAddress);
+            if(state == null || state == STATE_NONE)
+                state = "LISTEN";
+            while (state != STATE_CONNECTED && state != "") {
+                try {
+                    socket = serverSocket.accept();
+                } catch (IOException e) {
+                    break;
+                }
+
+                // If a connection was accepted
+                if (socket != null) {
+                    synchronized (this) {
+                        switch (state) {
+                            case "LISTEN":
+                            case STATE_CONNECTING:
+                                // start the connected thread.
+//                                connect();
+                                state = "";
+                                synchronized (RCTBluetoothSerialService.this) {
+                                    mConnectThreads.remove(socket.getRemoteDevice().getAddress());
+                                }
+                                // Start the thread to connect with the given device
+                                connectionSuccess(socket,socket.getRemoteDevice());
+//                                ConnectedThread thread = new ConnectedThread(socket,mDevice);
+//                                thread.start();
+                                break;
+                            //case STATE_NONE:
+                            case STATE_CONNECTED:
+                                // Either not ready or already connected. Terminate
+                                // new socket.
+                                try {
+                                    socket.close();
+                                } catch (IOException e) {
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
+        public void cancel() {
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
             }
         }
     }
