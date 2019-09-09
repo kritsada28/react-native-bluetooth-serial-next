@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 import {
   Platform,
   ScrollView,
@@ -8,43 +8,43 @@ import {
   View,
   ActivityIndicator,
   Modal
-} from "react-native";
+} from "react-native"
 
-import Toast from "@remobile/react-native-toast";
+import Toast from "@remobile/react-native-toast"
 import BluetoothSerial, {
   withSubscription
-} from "react-native-bluetooth-serial-next";
-import { Buffer } from "buffer";
+} from "react-native-bluetooth-serial-next"
+import { Buffer } from "buffer"
 
-import Button from "./components/Button";
-import DeviceList from "./components/DeviceList";
-import styles from "./styles";
+import Button from "./components/Button"
+import DeviceList from "./components/DeviceList"
+import styles from "./styles"
 
-global.Buffer = Buffer;
+global.Buffer = Buffer
 
-const iconv = require("iconv-lite");
+const iconv = require("iconv-lite")
 
 class App extends React.Component {
   constructor(props) {
-    super(props);
-    this.events = null;
+    super(props)
+    this.events = null
     this.state = {
       isEnabled: false,
       device: null,
       devices: [],
       scanning: false,
       processing: false
-    };
+    }
   }
 
   async componentDidMount() {
-    this.events = this.props.events;
+    this.events = this.props.events
 
     try {
       const [isEnabled, devices] = await Promise.all([
         BluetoothSerial.isEnabled(),
         BluetoothSerial.list()
-      ]);
+      ])
 
       this.setState({
         isEnabled,
@@ -53,116 +53,127 @@ class App extends React.Component {
           paired: true,
           connected: false
         }))
-      });
+      })
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
 
     this.events.on("bluetoothEnabled", () => {
-      Toast.showShortBottom("Bluetooth enabled");
-      this.setState({ isEnabled: true });
-    });
+      Toast.showShortBottom("Bluetooth enabled")
+      this.setState({ isEnabled: true })
+    })
 
     this.events.on("bluetoothDisabled", () => {
-      Toast.showShortBottom("Bluetooth disabled");
-      this.setState({ isEnabled: false });
-    });
+      Toast.showShortBottom("Bluetooth disabled")
+      this.setState({ isEnabled: false })
+    })
 
     this.events.on("connectionSuccess", ({ device }) => {
       if (device) {
         Toast.showShortBottom(
           `Device ${device.name}<${device.id}> has been connected`
-        );
+        )
       }
-    });
+    })
 
     this.events.on("connectionFailed", ({ device }) => {
       if (device) {
         Toast.showShortBottom(
           `Failed to connect with device ${device.name}<${device.id}>`
-        );
+        )
       }
-    });
+    })
 
     this.events.on("connectionLost", ({ device }) => {
       if (device) {
         Toast.showShortBottom(
           `Device ${device.name}<${device.id}> connection has been lost`
-        );
+        )
       }
-    });
+    })
 
     this.events.on("data", result => {
       if (result) {
-        const { id, data } = result;
-        console.log(`Data from device ${id} : ${data}`);
+        const { id, data } = result
+        console.log(`Data from device ${id} : ${data}`)
+
+        BluetoothSerial.clear();
+
       }
-    });
+    })
+
+    BluetoothSerial.read((data, subscription) => {
+      console.log(data);
+      debugger
+      // if (this.imBoredNow && subscription) {
+      //   BluetoothSerial.removeSubscription(subscription);
+      // }
+    }, "\r\n");
 
     this.events.on("error", e => {
       if (e) {
-        console.log(`Error: ${e.message}`);
-        Toast.showShortBottom(e.message);
+        console.log(`Error: ${e.message}`)
+        Toast.showShortBottom(e.message)
       }
-    });
+    })
   }
 
   requestEnable = () => async () => {
     try {
-      await BluetoothSerial.requestEnable();
-      this.setState({ isEnabled: true });
+      await BluetoothSerial.requestEnable()
+      this.setState({ isEnabled: true })
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
-  };
+  }
 
   toggleBluetooth = async value => {
     try {
       if (value) {
-        await BluetoothSerial.enable();
+        await BluetoothSerial.enable()
       } else {
-        await BluetoothSerial.disable();
+        await BluetoothSerial.disable()
       }
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
-  };
+  }
 
   listDevices = async () => {
     try {
-      const list = await BluetoothSerial.list();
+      const list = await BluetoothSerial.list()
 
       this.setState(({ devices }) => ({
         devices: devices.map(device => {
-          const found = list.find(v => v.id === device.id);
+          const found = list.find(v => v.id === device.id)
 
           if (found) {
             return {
               ...found,
               paired: true,
               connected: false
-            };
+            }
           }
 
-          return device;
+          return device
         })
-      }));
+      }))
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
-  };
+  }
 
   discoverUnpairedDevices = async () => {
-    this.setState({ scanning: true });
+    this.setState({ scanning: true })
 
     try {
-      const unpairedDevices = await BluetoothSerial.listUnpaired();
+      const unpairedDevices = await BluetoothSerial.listUnpaired()
 
       this.setState(({ devices }) => ({
         scanning: false,
         devices: devices
           .map(device => {
-            const found = unpairedDevices.find(d => d.id === device.id);
+            const found = unpairedDevices.find(d => d.id === device.id)
 
             if (found) {
               return {
@@ -170,50 +181,50 @@ class App extends React.Component {
                 ...found,
                 connected: false,
                 paired: false
-              };
+              }
             }
 
-            return device.paired || device.connected ? device : null;
+            return device.paired || device.connected ? device : null
           })
           .map(v => v)
-      }));
+      }))
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
 
       this.setState(({ devices }) => ({
         scanning: false,
         devices: devices.filter(device => device.paired || device.connected)
-      }));
+      }))
     }
-  };
+  }
 
   cancelDiscovery = () => async () => {
     try {
-      await BluetoothSerial.cancelDiscovery();
-      this.setState({ scanning: false });
+      await BluetoothSerial.cancelDiscovery()
+      this.setState({ scanning: false })
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
-  };
+  }
 
   toggleDevicePairing = async ({ id, paired }) => {
     if (paired) {
-      await this.unpairDevice(id);
+      await this.unpairDevice(id)
     } else {
-      await this.pairDevice(id);
+      await this.pairDevice(id)
     }
-  };
+  }
 
   pairDevice = async id => {
-    this.setState({ processing: true });
+    this.setState({ processing: true })
 
     try {
-      const paired = await BluetoothSerial.pairDevice(id);
+      const paired = await BluetoothSerial.pairDevice(id)
 
       if (paired) {
         Toast.showShortBottom(
           `Device ${paired.name}<${paired.id}> paired successfully`
-        );
+        )
 
         this.setState(({ devices, device }) => ({
           processing: false,
@@ -228,32 +239,32 @@ class App extends React.Component {
                 ...v,
                 ...paired,
                 paired: true
-              };
+              }
             }
 
-            return v;
+            return v
           })
-        }));
+        }))
       } else {
-        Toast.showShortBottom(`Device <${id}> pairing failed`);
-        this.setState({ processing: false });
+        Toast.showShortBottom(`Device <${id}> pairing failed`)
+        this.setState({ processing: false })
       }
     } catch (e) {
-      Toast.showShortBottom(e.message);
-      this.setState({ processing: false });
+      Toast.showShortBottom(e.message)
+      this.setState({ processing: false })
     }
-  };
+  }
 
   unpairDevice = async id => {
-    this.setState({ processing: true });
+    this.setState({ processing: true })
 
     try {
-      const unpaired = await BluetoothSerial.unpairDevice(id);
+      const unpaired = await BluetoothSerial.unpairDevice(id)
 
       if (unpaired) {
         Toast.showShortBottom(
           `Device ${unpaired.name}<${unpaired.id}> unpaired successfully`
-        );
+        )
 
         this.setState(({ devices, device }) => ({
           processing: false,
@@ -270,40 +281,45 @@ class App extends React.Component {
                 ...unpaired,
                 connected: false,
                 paired: false
-              };
+              }
             }
 
-            return v;
+            return v
           })
-        }));
+        }))
       } else {
-        Toast.showShortBottom(`Device <${id}> unpairing failed`);
-        this.setState({ processing: false });
+        Toast.showShortBottom(`Device <${id}> unpairing failed`)
+        this.setState({ processing: false })
       }
     } catch (e) {
-      Toast.showShortBottom(e.message);
-      this.setState({ processing: false });
+      Toast.showShortBottom(e.message)
+      this.setState({ processing: false })
     }
-  };
+  }
 
   toggleDeviceConnection = async ({ id, connected }) => {
     if (connected) {
-      await this.disconnect(id);
+      await this.disconnect(id)
     } else {
-      await this.connect(id);
+      await this.connect(id)
     }
-  };
+  }
+
+  toggleDeviceListen = async ({ id, connected }) => {
+    debugger
+    BluetoothSerial.listenDevice(id)
+  }
 
   connect = async id => {
-    this.setState({ processing: true });
+    this.setState({ processing: true })
 
     try {
-      const connected = await BluetoothSerial.device(id).connect();
+      const connected = await BluetoothSerial.device(id).connect()
 
       if (connected) {
         Toast.showShortBottom(
           `Connected to device ${connected.name}<${connected.id}>`
-        );
+        )
 
         this.setState(({ devices, device }) => ({
           processing: false,
@@ -318,27 +334,27 @@ class App extends React.Component {
                 ...v,
                 ...connected,
                 connected: true
-              };
+              }
             }
 
-            return v;
+            return v
           })
-        }));
+        }))
       } else {
-        Toast.showShortBottom(`Failed to connect to device <${id}>`);
-        this.setState({ processing: false });
+        Toast.showShortBottom(`Failed to connect to device <${id}>`)
+        this.setState({ processing: false })
       }
     } catch (e) {
-      Toast.showShortBottom(e.message);
-      this.setState({ processing: false });
+      Toast.showShortBottom(e.message)
+      this.setState({ processing: false })
     }
-  };
+  }
 
   disconnect = async id => {
-    this.setState({ processing: true });
+    this.setState({ processing: true })
 
     try {
-      await BluetoothSerial.device(id).disconnect();
+      await BluetoothSerial.device(id).disconnect()
 
       this.setState(({ devices, device }) => ({
         processing: false,
@@ -351,53 +367,53 @@ class App extends React.Component {
             return {
               ...v,
               connected: false
-            };
+            }
           }
 
-          return v;
+          return v
         })
-      }));
+      }))
     } catch (e) {
-      Toast.showShortBottom(e.message);
-      this.setState({ processing: false });
+      Toast.showShortBottom(e.message)
+      this.setState({ processing: false })
     }
-  };
+  }
 
   write = async (id, message) => {
     try {
-      await BluetoothSerial.device(id).write(message);
-      Toast.showShortBottom("Successfuly wrote to device");
+      await BluetoothSerial.device(id).write(message)
+      Toast.showShortBottom("Successfuly wrote to device")
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
-  };
+  }
 
   writePackets = async (id, message, packetSize = 64) => {
     try {
-      const device = BluetoothSerial.device(id);
-      const toWrite = iconv.encode(message, "cp852");
-      const writePromises = [];
-      const packetCount = Math.ceil(toWrite.length / packetSize);
+      const device = BluetoothSerial.device(id)
+      const toWrite = iconv.encode(message, "cp852")
+      const writePromises = []
+      const packetCount = Math.ceil(toWrite.length / packetSize)
 
       for (var i = 0; i < packetCount; i++) {
-        const packet = new Buffer(packetSize);
-        packet.fill(" ");
-        toWrite.copy(packet, 0, i * packetSize, (i + 1) * packetSize);
-        writePromises.push(device.write(packet));
+        const packet = new Buffer(packetSize)
+        packet.fill(" ")
+        toWrite.copy(packet, 0, i * packetSize, (i + 1) * packetSize)
+        writePromises.push(device.write(packet))
       }
 
       await Promise.all(writePromises).then(() =>
         Toast.showShortBottom("Writed packets")
-      );
+      )
     } catch (e) {
-      Toast.showShortBottom(e.message);
+      Toast.showShortBottom(e.message)
     }
-  };
+  }
 
   renderModal = (device, processing) => {
-    if (!device) return null;
+    if (!device) return null
 
-    const { id, name, paired, connected } = device;
+    const { id, name, paired, connected } = device
 
     return (
       <Modal
@@ -444,6 +460,14 @@ class App extends React.Component {
                   textStyle={{ color: "#fff" }}
                   onPress={() => this.toggleDeviceConnection(device)}
                 />
+                <Button
+                  title={"Listen"}
+                  style={{
+                    backgroundColor: "#22509d"
+                  }}
+                  textStyle={{ color: "#fff" }}
+                  onPress={() => this.toggleDeviceListen(device)}
+                />
                 {connected && (
                   <React.Fragment>
                     <Button
@@ -483,11 +507,11 @@ class App extends React.Component {
           </View>
         ) : null}
       </Modal>
-    );
-  };
+    )
+  }
 
   render() {
-    const { isEnabled, device, devices, scanning, processing } = this.state;
+    const { isEnabled, device, devices, scanning, processing } = this.state
 
     return (
       <SafeAreaView style={{ flex: 1 }}>
@@ -547,8 +571,8 @@ class App extends React.Component {
           </ScrollView>
         </View>
       </SafeAreaView>
-    );
+    )
   }
 }
 
-export default withSubscription({ subscriptionName: "events" })(App);
+export default withSubscription({ subscriptionName: "events" })(App)

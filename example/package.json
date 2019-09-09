@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node node_modules/react-native/local-cli/cli.js start --reset-cache"
+    "start": "node node_modules/react-native/local-cli/cli.js start --reset-cache",
+    "clean": "npm cache clean -f && watchman watch-del-all && shx rm -rf $TMPDIR/react-* $TMPDIR/haste-map-react-native-packager-* $TMPDIR/metro-bundler-cache-*"
   },
   "dependencies": {
     "@babel/runtime": "7.0.0-beta.53",
@@ -15,7 +16,8 @@
   },
   "devDependencies": {
     "metro-react-native-babel-preset": "0.46.0",
-    "react-test-renderer": "16.5.0"
+    "react-test-renderer": "16.5.0",
+    "shx": "^0.3.2"
   },
   "jest": {
     "preset": "react-native"
