@@ -20,9 +20,9 @@ export type Buffer = (data: number[]) => void;
  * @param options
  */
 export function withSubscription(options: {
-  subscriptionName?: "subscription";
+  subscriptionName?: string;
   destroyOnWillUnmount?: true;
-}): (WrappedComponent: React.Component) => React.Component;
+}): <P extends object>(WrappedComponent: ComponentType<P>) => ComponentClass<P>
 
 declare namespace BluetoothSerial {
   interface CommonDevice extends Object {
