@@ -128,7 +128,7 @@ class RCTBluetoothSerialService {
         }
 
         mAcceptThreads.put(id, thread);
-        //mStates.put(id, STATE_CONNECTING);
+        mStates.put(id, STATE_CONNECTING);
     }
 
     /**
@@ -375,9 +375,6 @@ class RCTBluetoothSerialService {
                                 // start the connected thread.
 //                                connect();
                                 state = "";
-                                synchronized (RCTBluetoothSerialService.this) {
-                                    mConnectThreads.remove(socket.getRemoteDevice().getAddress());
-                                }
                                 // Start the thread to connect with the given device
                                 connectionSuccess(socket,socket.getRemoteDevice());
 //                                ConnectedThread thread = new ConnectedThread(socket,mDevice);
